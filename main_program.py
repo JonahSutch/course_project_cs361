@@ -1,4 +1,5 @@
 import random
+import zmq
 
 def opening_page():
     print("Welcome to the Song Playlist Creator and Recommender!")
@@ -20,14 +21,15 @@ def welcome_page():
     print("1. Add a Song")
     print("2. Get a Recommendation")
     print("3. Info Page")
-    print("4. Exit the program")
+    print("4. Song Guesser Game")
+    print("5. Exit the program")
    
     while True:
-        choice = input("Enter the number of your choice (1-4): ").strip()
-        if choice in {'1', '2', '3', '4'}:
+        choice = input("Enter the number of your choice (1-5): ").strip()
+        if choice in {'1', '2', '3', '4', '5'}:
             return int(choice)
         else:
-            print("Please enter 1, 2, 3, or 4.")
+            print("Please enter 1, 2, 3, 4, or 5.")
 
 
 def add_song():
@@ -84,6 +86,8 @@ def info_page():
     print("song recommendation by mood or genre. To start type")
     print("back and then select an action, either to add a song or get ")
     print("a recommendation.")
+    print("The song guesser is a game you can play. When you enter the song guesser")
+    print("it will randomly pick a song from the general library and then quix you on one of the parts")
     response = input("\nEnter 'back' to go back to the menu: ").strip()
     if response == 'back':
         return
@@ -167,6 +171,35 @@ def get_recommendation():
         print(f"No songs found with that {answer}.")
 
 
+def song_guesser():
+    print("\n=== Song Guesser Game ===")
+    print("You’ll be given a song with one detail missing (name, artist, genre, or mood).")
+    print("Try to guess the missing detail!")
+
+    try:
+        context = zmq.Context()
+        socket = context.socket(zmq.REQ)
+        socket.connect("tcp://localhost:5555")
+
+        socket.send_string("start")
+        response = socket.recv_json()
+
+        print("\n" + response["question"])
+
+        user_guess = input(f"\nYour guess for the missing {response['missing']}: ").strip()
+        socket.send_string(f"guess:{user_guess}")
+        result = socket.recv_string()
+
+        if result == "true":
+            print("Correct!\n")
+        else:
+            print(f"Incorrect. The correct {response['missing']} was: {response['answer']}\n")
+
+    except Exception as e:
+        print(f"Error communicating with song guesser microservice: {e}")
+    return
+
+
 def main():
     if not opening_page():
         return
@@ -180,6 +213,8 @@ def main():
         elif selection == 3:
             info_page()
         elif selection == 4:
+            song_guesser()
+        elif selection == 5:
             print("Exiting")
             return
 
